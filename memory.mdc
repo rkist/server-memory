@@ -1,0 +1,33 @@
+---
+description: Query /memory before every answer and update it afterwards.
+globs: 
+alwaysApply: true
+---
+
+# /memory Tool Kit
+
+## search_nodes
+Purpose: find facts that match a keyword string  
+Call   : { "query": "<keywords>" }
+
+## create_entities
+Purpose: add new concepts to the graph  
+Call   : { "entities": [ { "name": "<thing>", "description": "<why it matters>" } ] }
+
+## add_observations
+Purpose: attach notes, code, or links to an existing entity  
+Call   : { "entity": "<id-or-name>", "observation": "<text>" }
+
+## create_relations
+Purpose: connect two entities with a verb edge  
+Call   : { "source": "<id-or-name>", "edge": "<verb>", "target": "<id-or-name>" }
+
+## delete_* · read_graph · open_nodes
+Use these only if the user explicitly asks to inspect or prune.
+
+---
+
+Flow of Battle  
+1. *Before answering* → run `/memory search_nodes` with concise keywords.  
+2. *After answering*  → if you produced reusable knowledge, call `create_entities`, `add_observations`, and/or `create_relations`.  
+3. Never delete unless the user says “forget” or “purge”.
