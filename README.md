@@ -206,7 +206,7 @@ Optionally, you can add it to a file called `.vscode/mcp.json` in your workspace
         "command": "npx",
         "args": [
           "-y",
-          "@modelcontextprotocol/server-memory"
+          "@rkist/server-memory"
         ]
       }
     }
