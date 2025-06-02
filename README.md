@@ -190,7 +190,8 @@ The server can be configured using the following environment variables:
 ```
 
 ### System Prompt
-Check [[memory.mdc]]
+Check [Memory Rule Example](memory.mdc)
+
 
 
 ## Building
