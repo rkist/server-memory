@@ -12,7 +12,7 @@ import { fileURLToPath } from 'url';
 import os from 'os';
 
 // Define base memory directory for project-specific storage
-const defaultBaseMemoryDir = path.join(os.homedir(), '.mcp_server_memory_by_project');
+const defaultBaseMemoryDir = path.join(os.homedir(), '.mcp_server_memory');
 const BASE_MEMORY_DIR = process.env.MCP_BASE_MEMORY_DIR
   ? path.isAbsolute(process.env.MCP_BASE_MEMORY_DIR)
     ? process.env.MCP_BASE_MEMORY_DIR

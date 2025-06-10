@@ -53,7 +53,7 @@ Example:
 
 ### Tools
 
-**All tools now require a `projectIdentifier` argument (string) as the first part of their input. This identifier (e.g., the project's name or a unique ID like its path) is used to create/access a dedicated memory store for that project. By default, project memories are stored in subdirectories under `~/.mcp_server_memory_by_project/`. This base path can be changed by setting the `MCP_BASE_MEMORY_DIR` environment variable.**
+**All tools now require a `projectIdentifier` argument (string) as the first part of their input. This identifier (e.g., the project's name or a unique ID like its path) is used to create/access a dedicated memory store for that project. By default, project memories are stored in subdirectories under `~/.mcp_server_memory/`. This base path can be changed by setting the `MCP_BASE_MEMORY_DIR` environment variable.**
 
 - **create_entities**
   - Create multiple new entities in the knowledge graph for the specified project.
@@ -163,8 +163,8 @@ Add this to your claude_desktop_config.json:
         // Mount a host directory to persist memories. 
         // Inside the container, os.homedir() (~) is /root for the default user.
         // The server stores memories in BASE_MEMORY_DIR/projectIdentifier/memory.jsonl
-        // Default BASE_MEMORY_DIR is ~/.mcp_server_memory_by_project/
-        "-v", "/path/on/your/host/project_memories:/root/.mcp_server_memory_by_project", 
+        // Default BASE_MEMORY_DIR is ~/.mcp_server_memory/
+        "-v", "/path/on/your/host/project_memories:/root/.mcp_server_memory", 
         "--rm", 
         "mcp/memory" 
       ]
@@ -193,7 +193,7 @@ The server can be configured using the following environment variables:
       ],
       "env": {
         // MCP_BASE_MEMORY_DIR: Path to the base directory for storing all project-specific memories.
-        // Default is ~/.mcp_server_memory_by_project/
+        // Default is ~/.mcp_server_memory/
         "MCP_BASE_MEMORY_DIR": "/path/to/custom/base_memory_dir"
       }
     }
@@ -201,7 +201,7 @@ The server can be configured using the following environment variables:
 }
 ```
 
-- `MCP_BASE_MEMORY_DIR`: Overrides the default base directory (`~/.mcp_server_memory_by_project/`) for storing project memories.
+- `MCP_BASE_MEMORY_DIR`: Overrides the default base directory (`~/.mcp_server_memory/`) for storing project memories.
 
 # VS Code Installation Instructions
 
@@ -217,7 +217,7 @@ The server can be configured using the following environment variables:
           "-i",
           // Ensure consistent volume mount for data persistence
           "-v",
-          "/path/on/your/host/project_memories_vscode:/root/.mcp_server_memory_by_project",
+          "/path/on/your/host/project_memories_vscode:/root/.mcp_server_memory",
           "--rm",
           "mcp/memory"
         ]
