@@ -53,7 +53,7 @@ Example:
 
 ### Tools
 
-**All tools now require a `projectIdentifier` argument (string) as the first part of their input. This identifier (e.g., the project's name or a unique ID like its path) is used to create/access a dedicated memory store for that project. By default, project memories are stored in subdirectories under `~/.mcp_server_memory/`. This base path can be changed by setting the `MCP_BASE_MEMORY_DIR` environment variable.**
+**All tools now require a `projectIdentifier` argument (string) as the first part of their input. This is a unique, stable identifier for the project. For automated clients or IDE integrations, it is STRONGLY RECOMMENDED to use the project's absolute root file system path (e.g., '/path/to/your/project'). The server will sanitize this path to create a valid directory name for storing project-specific memories. Consistent use of this identifier by the client is crucial to avoid memory fragmentation. By default, project memories are stored in subdirectories under `~/.mcp_server_memory/` (or the path specified by the `MCP_BASE_MEMORY_DIR` environment variable).**
 
 - **create_entities**
   - Create multiple new entities in the knowledge graph for the specified project.

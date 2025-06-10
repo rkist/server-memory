@@ -227,7 +227,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: {
           type: "object",
           properties: {
-            projectIdentifier: { type: "string", description: "The name or unique ID of the project (e.g., 'my-web-app', 'api-service'). This will be used to create a dedicated memory store for the project." },
+            projectIdentifier: { type: "string", description: "A unique, stable identifier for the project. For automated clients or IDE integrations, it is STRONGLY RECOMMENDED to use the project's absolute root file system path (e.g., '/path/to/your/project'). The server will sanitize this path to create a valid directory name for storing memories. Consistent use of this identifier is crucial to avoid memory fragmentation." },
             entities: {
               type: "array",
               items: {
@@ -254,7 +254,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: {
           type: "object",
           properties: {
-            projectIdentifier: { type: "string", description: "The name or unique ID of the project (e.g., 'my-web-app', 'api-service'). This will be used to create a dedicated memory store for the project." },
+            projectIdentifier: { type: "string", description: "A unique, stable identifier for the project. For automated clients or IDE integrations, it is STRONGLY RECOMMENDED to use the project's absolute root file system path (e.g., '/path/to/your/project'). The server will sanitize this path to create a valid directory name for storing memories. Consistent use of this identifier is crucial to avoid memory fragmentation." },
             relations: {
               type: "array",
               items: {
@@ -277,7 +277,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: {
           type: "object",
           properties: {
-            projectIdentifier: { type: "string", description: "The name or unique ID of the project (e.g., 'my-web-app', 'api-service'). This will be used to create a dedicated memory store for the project." },
+            projectIdentifier: { type: "string", description: "A unique, stable identifier for the project. For automated clients or IDE integrations, it is STRONGLY RECOMMENDED to use the project's absolute root file system path (e.g., '/path/to/your/project'). The server will sanitize this path to create a valid directory name for storing memories. Consistent use of this identifier is crucial to avoid memory fragmentation." },
             observations: {
               type: "array",
               items: {
@@ -303,7 +303,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: {
           type: "object",
           properties: {
-            projectIdentifier: { type: "string", description: "The name or unique ID of the project (e.g., 'my-web-app', 'api-service'). This will be used to create a dedicated memory store for the project." },
+            projectIdentifier: { type: "string", description: "A unique, stable identifier for the project. For automated clients or IDE integrations, it is STRONGLY RECOMMENDED to use the project's absolute root file system path (e.g., '/path/to/your/project'). The server will sanitize this path to create a valid directory name for storing memories. Consistent use of this identifier is crucial to avoid memory fragmentation." },
             entityNames: { 
               type: "array", 
               items: { type: "string" },
@@ -319,7 +319,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: {
           type: "object",
           properties: {
-            projectIdentifier: { type: "string", description: "The name or unique ID of the project (e.g., 'my-web-app', 'api-service'). This will be used to create a dedicated memory store for the project." },
+            projectIdentifier: { type: "string", description: "A unique, stable identifier for the project. For automated clients or IDE integrations, it is STRONGLY RECOMMENDED to use the project's absolute root file system path (e.g., '/path/to/your/project'). The server will sanitize this path to create a valid directory name for storing memories. Consistent use of this identifier is crucial to avoid memory fragmentation." },
             deletions: {
               type: "array",
               items: {
@@ -345,7 +345,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: {
           type: "object",
           properties: {
-            projectIdentifier: { type: "string", description: "The name or unique ID of the project (e.g., 'my-web-app', 'api-service'). This will be used to create a dedicated memory store for the project." },
+            projectIdentifier: { type: "string", description: "A unique, stable identifier for the project. For automated clients or IDE integrations, it is STRONGLY RECOMMENDED to use the project's absolute root file system path (e.g., '/path/to/your/project'). The server will sanitize this path to create a valid directory name for storing memories. Consistent use of this identifier is crucial to avoid memory fragmentation." },
             relations: { 
               type: "array", 
               items: {
@@ -369,7 +369,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: {
           type: "object",
           properties: {
-            projectIdentifier: { type: "string", description: "The name or unique ID of the project (e.g., 'my-web-app', 'api-service'). This will be used to create a dedicated memory store for the project." },
+            projectIdentifier: { type: "string", description: "A unique, stable identifier for the project. For automated clients or IDE integrations, it is STRONGLY RECOMMENDED to use the project's absolute root file system path (e.g., '/path/to/your/project'). The server will sanitize this path to create a valid directory name for storing memories. Consistent use of this identifier is crucial to avoid memory fragmentation." },
           },
           required: ["projectIdentifier"],
         },
@@ -380,7 +380,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: {
           type: "object",
           properties: {
-            projectIdentifier: { type: "string", description: "The name or unique ID of the project (e.g., 'my-web-app', 'api-service'). This will be used to create a dedicated memory store for the project." },
+            projectIdentifier: { type: "string", description: "A unique, stable identifier for the project. For automated clients or IDE integrations, it is STRONGLY RECOMMENDED to use the project's absolute root file system path (e.g., '/path/to/your/project'). The server will sanitize this path to create a valid directory name for storing memories. Consistent use of this identifier is crucial to avoid memory fragmentation." },
             query: { type: "string", description: "The search query to match against entity names, types, and observation content" },
           },
           required: ["projectIdentifier", "query"],
@@ -392,7 +392,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: {
           type: "object",
           properties: {
-            projectIdentifier: { type: "string", description: "The name or unique ID of the project (e.g., 'my-web-app', 'api-service'). This will be used to create a dedicated memory store for the project." },
+            projectIdentifier: { type: "string", description: "A unique, stable identifier for the project. For automated clients or IDE integrations, it is STRONGLY RECOMMENDED to use the project's absolute root file system path (e.g., '/path/to/your/project'). The server will sanitize this path to create a valid directory name for storing memories. Consistent use of this identifier is crucial to avoid memory fragmentation." },
             names: {
               type: "array",
               items: { type: "string" },
