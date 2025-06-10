@@ -9,16 +9,36 @@ import {
 import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import os from 'os';
 
-// Define memory file path using environment variable with fallback
-const defaultMemoryPath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'memory.json');
+// Define base memory directory for project-specific storage
+const defaultBaseMemoryDir = path.join(os.homedir(), '.mcp_server_memory_by_project');
+const BASE_MEMORY_DIR = process.env.MCP_BASE_MEMORY_DIR
+  ? path.isAbsolute(process.env.MCP_BASE_MEMORY_DIR)
+    ? process.env.MCP_BASE_MEMORY_DIR
+    : path.resolve(process.env.MCP_BASE_MEMORY_DIR)
+  : defaultBaseMemoryDir;
 
-// If MEMORY_FILE_PATH is just a filename, put it in the same directory as the script
-const MEMORY_FILE_PATH = process.env.MEMORY_FILE_PATH
-  ? path.isAbsolute(process.env.MEMORY_FILE_PATH)
-    ? process.env.MEMORY_FILE_PATH
-    : path.join(path.dirname(fileURLToPath(import.meta.url)), process.env.MEMORY_FILE_PATH)
-  : defaultMemoryPath;
+// Helper function to get and ensure the project-specific memory file path
+async function getProjectMemoryFilePath(projectIdentifier: string): Promise<string> {
+  if (!projectIdentifier || projectIdentifier.trim() === "") {
+    throw new Error("Project identifier cannot be empty and must be a valid string.");
+  }
+  // Basic sanitization for directory name. Consider more robust sanitization if needed.
+  const saneProjectIdentifier = projectIdentifier.replace(/[^a-zA-Z0-9_.-]/g, '_');
+  if (!saneProjectIdentifier || saneProjectIdentifier.startsWith('.')) {
+    throw new Error(`Invalid project identifier after sanitization: ${projectIdentifier}`);
+  }
+
+  const projectMemoryDir = path.join(BASE_MEMORY_DIR, saneProjectIdentifier);
+  try {
+    await fs.mkdir(projectMemoryDir, { recursive: true }); // Ensure directory exists
+  } catch (error) {
+    console.error(`Failed to create directory ${projectMemoryDir}:`, error);
+    throw new Error(`Failed to create project memory directory for ${saneProjectIdentifier}.`);
+  }
+  return path.join(projectMemoryDir, 'memory.jsonl'); // Using .jsonl extension
+}
 
 // We are storing our memory using entities, relations, and observations in a graph structure
 interface Entity {
@@ -40,9 +60,10 @@ interface KnowledgeGraph {
 
 // The KnowledgeGraphManager class contains all operations to interact with the knowledge graph
 class KnowledgeGraphManager {
-  private async loadGraph(): Promise<KnowledgeGraph> {
+  private async loadGraph(projectIdentifier: string): Promise<KnowledgeGraph> {
+    const filePath = await getProjectMemoryFilePath(projectIdentifier);
     try {
-      const data = await fs.readFile(MEMORY_FILE_PATH, "utf-8");
+      const data = await fs.readFile(filePath, "utf-8");
       const lines = data.split("\n").filter(line => line.trim() !== "");
       return lines.reduce((graph: KnowledgeGraph, line) => {
         const item = JSON.parse(line);
@@ -58,36 +79,37 @@ class KnowledgeGraphManager {
     }
   }
 
-  private async saveGraph(graph: KnowledgeGraph): Promise<void> {
+  private async saveGraph(projectIdentifier: string, graph: KnowledgeGraph): Promise<void> {
+    const filePath = await getProjectMemoryFilePath(projectIdentifier);
     const lines = [
       ...graph.entities.map(e => JSON.stringify({ type: "entity", ...e })),
       ...graph.relations.map(r => JSON.stringify({ type: "relation", ...r })),
     ];
-    await fs.writeFile(MEMORY_FILE_PATH, lines.join("\n"));
+    await fs.writeFile(filePath, lines.join("\n"));
   }
 
-  async createEntities(entities: Entity[]): Promise<Entity[]> {
-    const graph = await this.loadGraph();
+  async createEntities(projectIdentifier: string, entities: Entity[]): Promise<Entity[]> {
+    const graph = await this.loadGraph(projectIdentifier);
     const newEntities = entities.filter(e => !graph.entities.some(existingEntity => existingEntity.name === e.name));
     graph.entities.push(...newEntities);
-    await this.saveGraph(graph);
+    await this.saveGraph(projectIdentifier, graph);
     return newEntities;
   }
 
-  async createRelations(relations: Relation[]): Promise<Relation[]> {
-    const graph = await this.loadGraph();
+  async createRelations(projectIdentifier: string, relations: Relation[]): Promise<Relation[]> {
+    const graph = await this.loadGraph(projectIdentifier);
     const newRelations = relations.filter(r => !graph.relations.some(existingRelation => 
       existingRelation.from === r.from && 
       existingRelation.to === r.to && 
       existingRelation.relationType === r.relationType
     ));
     graph.relations.push(...newRelations);
-    await this.saveGraph(graph);
+    await this.saveGraph(projectIdentifier, graph);
     return newRelations;
   }
 
-  async addObservations(observations: { entityName: string; contents: string[] }[]): Promise<{ entityName: string; addedObservations: string[] }[]> {
-    const graph = await this.loadGraph();
+  async addObservations(projectIdentifier: string, observations: { entityName: string; contents: string[] }[]): Promise<{ entityName: string; addedObservations: string[] }[]> {
+    const graph = await this.loadGraph(projectIdentifier);
     const results = observations.map(o => {
       const entity = graph.entities.find(e => e.name === o.entityName);
       if (!entity) {
@@ -97,45 +119,45 @@ class KnowledgeGraphManager {
       entity.observations.push(...newObservations);
       return { entityName: o.entityName, addedObservations: newObservations };
     });
-    await this.saveGraph(graph);
+    await this.saveGraph(projectIdentifier, graph);
     return results;
   }
 
-  async deleteEntities(entityNames: string[]): Promise<void> {
-    const graph = await this.loadGraph();
+  async deleteEntities(projectIdentifier: string, entityNames: string[]): Promise<void> {
+    const graph = await this.loadGraph(projectIdentifier);
     graph.entities = graph.entities.filter(e => !entityNames.includes(e.name));
     graph.relations = graph.relations.filter(r => !entityNames.includes(r.from) && !entityNames.includes(r.to));
-    await this.saveGraph(graph);
+    await this.saveGraph(projectIdentifier, graph);
   }
 
-  async deleteObservations(deletions: { entityName: string; observations: string[] }[]): Promise<void> {
-    const graph = await this.loadGraph();
+  async deleteObservations(projectIdentifier: string, deletions: { entityName: string; observations: string[] }[]): Promise<void> {
+    const graph = await this.loadGraph(projectIdentifier);
     deletions.forEach(d => {
       const entity = graph.entities.find(e => e.name === d.entityName);
       if (entity) {
         entity.observations = entity.observations.filter(o => !d.observations.includes(o));
       }
     });
-    await this.saveGraph(graph);
+    await this.saveGraph(projectIdentifier, graph);
   }
 
-  async deleteRelations(relations: Relation[]): Promise<void> {
-    const graph = await this.loadGraph();
+  async deleteRelations(projectIdentifier: string, relations: Relation[]): Promise<void> {
+    const graph = await this.loadGraph(projectIdentifier);
     graph.relations = graph.relations.filter(r => !relations.some(delRelation => 
       r.from === delRelation.from && 
       r.to === delRelation.to && 
       r.relationType === delRelation.relationType
     ));
-    await this.saveGraph(graph);
+    await this.saveGraph(projectIdentifier, graph);
   }
 
-  async readGraph(): Promise<KnowledgeGraph> {
-    return this.loadGraph();
+  async readGraph(projectIdentifier: string): Promise<KnowledgeGraph> {
+    return this.loadGraph(projectIdentifier);
   }
 
   // Very basic search function
-  async searchNodes(query: string): Promise<KnowledgeGraph> {
-    const graph = await this.loadGraph();
+  async searchNodes(projectIdentifier: string, query: string): Promise<KnowledgeGraph> {
+    const graph = await this.loadGraph(projectIdentifier);
     
     // Filter entities
     const filteredEntities = graph.entities.filter(e => 
@@ -160,8 +182,8 @@ class KnowledgeGraphManager {
     return filteredGraph;
   }
 
-  async openNodes(names: string[]): Promise<KnowledgeGraph> {
-    const graph = await this.loadGraph();
+  async openNodes(projectIdentifier: string, names: string[]): Promise<KnowledgeGraph> {
+    const graph = await this.loadGraph(projectIdentifier);
     
     // Filter entities
     const filteredEntities = graph.entities.filter(e => names.includes(e.name));
@@ -205,6 +227,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: {
           type: "object",
           properties: {
+            projectIdentifier: { type: "string", description: "The name or unique ID of the project (e.g., 'my-web-app', 'api-service'). This will be used to create a dedicated memory store for the project." },
             entities: {
               type: "array",
               items: {
@@ -222,7 +245,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               },
             },
           },
-          required: ["entities"],
+          required: ["projectIdentifier", "entities"],
         },
       },
       {
@@ -231,6 +254,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: {
           type: "object",
           properties: {
+            projectIdentifier: { type: "string", description: "The name or unique ID of the project (e.g., 'my-web-app', 'api-service'). This will be used to create a dedicated memory store for the project." },
             relations: {
               type: "array",
               items: {
@@ -244,7 +268,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               },
             },
           },
-          required: ["relations"],
+          required: ["projectIdentifier", "relations"],
         },
       },
       {
@@ -253,6 +277,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: {
           type: "object",
           properties: {
+            projectIdentifier: { type: "string", description: "The name or unique ID of the project (e.g., 'my-web-app', 'api-service'). This will be used to create a dedicated memory store for the project." },
             observations: {
               type: "array",
               items: {
@@ -269,7 +294,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               },
             },
           },
-          required: ["observations"],
+          required: ["projectIdentifier", "observations"],
         },
       },
       {
@@ -278,13 +303,14 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: {
           type: "object",
           properties: {
+            projectIdentifier: { type: "string", description: "The name or unique ID of the project (e.g., 'my-web-app', 'api-service'). This will be used to create a dedicated memory store for the project." },
             entityNames: { 
               type: "array", 
               items: { type: "string" },
               description: "An array of entity names to delete" 
             },
           },
-          required: ["entityNames"],
+          required: ["projectIdentifier", "entityNames"],
         },
       },
       {
@@ -293,6 +319,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: {
           type: "object",
           properties: {
+            projectIdentifier: { type: "string", description: "The name or unique ID of the project (e.g., 'my-web-app', 'api-service'). This will be used to create a dedicated memory store for the project." },
             deletions: {
               type: "array",
               items: {
@@ -309,7 +336,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               },
             },
           },
-          required: ["deletions"],
+          required: ["projectIdentifier", "deletions"],
         },
       },
       {
@@ -318,6 +345,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: {
           type: "object",
           properties: {
+            projectIdentifier: { type: "string", description: "The name or unique ID of the project (e.g., 'my-web-app', 'api-service'). This will be used to create a dedicated memory store for the project." },
             relations: { 
               type: "array", 
               items: {
@@ -332,41 +360,46 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description: "An array of relations to delete" 
             },
           },
-          required: ["relations"],
+          required: ["projectIdentifier", "relations"],
         },
       },
       {
         name: "read_graph",
-        description: "Read the entire knowledge graph",
+        description: "Read the entire knowledge graph for a specific project",
         inputSchema: {
           type: "object",
-          properties: {},
+          properties: {
+            projectIdentifier: { type: "string", description: "The name or unique ID of the project (e.g., 'my-web-app', 'api-service'). This will be used to create a dedicated memory store for the project." },
+          },
+          required: ["projectIdentifier"],
         },
       },
       {
         name: "search_nodes",
-        description: "Search for nodes in the knowledge graph based on a query",
+        description: "Search for nodes in the knowledge graph based on a query for a specific project",
         inputSchema: {
           type: "object",
           properties: {
+            projectIdentifier: { type: "string", description: "The name or unique ID of the project (e.g., 'my-web-app', 'api-service'). This will be used to create a dedicated memory store for the project." },
             query: { type: "string", description: "The search query to match against entity names, types, and observation content" },
           },
-          required: ["query"],
+          required: ["projectIdentifier", "query"],
         },
       },
       {
         name: "open_nodes",
-        description: "Open specific nodes in the knowledge graph by their names",
+        description: "Open specific nodes in the knowledge graph by their names for a specific project",
         inputSchema: {
           type: "object",
           properties: {
+            projectIdentifier: { type: "string", description: "The name or unique ID of the project (e.g., 'my-web-app', 'api-service'). This will be used to create a dedicated memory store for the project." },
             names: {
               type: "array",
               items: { type: "string" },
               description: "An array of entity names to retrieve",
             },
           },
-          required: ["names"],
+          required: ["projectIdentifier", "names"],
         },
       },
     ],
@@ -382,26 +415,26 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   switch (name) {
     case "create_entities":
-      return { content: [{ type: "text", text: JSON.stringify(await knowledgeGraphManager.createEntities(args.entities as Entity[]), null, 2) }] };
+      return { content: [{ type: "text", text: JSON.stringify(await knowledgeGraphManager.createEntities(args.projectIdentifier as string, args.entities as Entity[]), null, 2) }] };
     case "create_relations":
-      return { content: [{ type: "text", text: JSON.stringify(await knowledgeGraphManager.createRelations(args.relations as Relation[]), null, 2) }] };
+      return { content: [{ type: "text", text: JSON.stringify(await knowledgeGraphManager.createRelations(args.projectIdentifier as string, args.relations as Relation[]), null, 2) }] };
     case "add_observations":
-      return { content: [{ type: "text", text: JSON.stringify(await knowledgeGraphManager.addObservations(args.observations as { entityName: string; contents: string[] }[]), null, 2) }] };
+      return { content: [{ type: "text", text: JSON.stringify(await knowledgeGraphManager.addObservations(args.projectIdentifier as string, args.observations as { entityName: string; contents: string[] }[]), null, 2) }] };
     case "delete_entities":
-      await knowledgeGraphManager.deleteEntities(args.entityNames as string[]);
+      await knowledgeGraphManager.deleteEntities(args.projectIdentifier as string, args.entityNames as string[]);
       return { content: [{ type: "text", text: "Entities deleted successfully" }] };
     case "delete_observations":
-      await knowledgeGraphManager.deleteObservations(args.deletions as { entityName: string; observations: string[] }[]);
+      await knowledgeGraphManager.deleteObservations(args.projectIdentifier as string, args.deletions as { entityName: string; observations: string[] }[]);
       return { content: [{ type: "text", text: "Observations deleted successfully" }] };
     case "delete_relations":
-      await knowledgeGraphManager.deleteRelations(args.relations as Relation[]);
+      await knowledgeGraphManager.deleteRelations(args.projectIdentifier as string, args.relations as Relation[]);
       return { content: [{ type: "text", text: "Relations deleted successfully" }] };
     case "read_graph":
-      return { content: [{ type: "text", text: JSON.stringify(await knowledgeGraphManager.readGraph(), null, 2) }] };
+      return { content: [{ type: "text", text: JSON.stringify(await knowledgeGraphManager.readGraph(args.projectIdentifier as string), null, 2) }] };
     case "search_nodes":
-      return { content: [{ type: "text", text: JSON.stringify(await knowledgeGraphManager.searchNodes(args.query as string), null, 2) }] };
+      return { content: [{ type: "text", text: JSON.stringify(await knowledgeGraphManager.searchNodes(args.projectIdentifier as string, args.query as string), null, 2) }] };
     case "open_nodes":
-      return { content: [{ type: "text", text: JSON.stringify(await knowledgeGraphManager.openNodes(args.names as string[]), null, 2) }] };
+      return { content: [{ type: "text", text: JSON.stringify(await knowledgeGraphManager.openNodes(args.projectIdentifier as string, args.names as string[]), null, 2) }] };
     default:
       throw new Error(`Unknown tool: ${name}`);
   }

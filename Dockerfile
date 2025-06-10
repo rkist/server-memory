@@ -1,24 +1,32 @@
-FROM node:22.12-alpine AS builder
-
-COPY src/memory /app
-COPY tsconfig.json /tsconfig.json
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-RUN --mount=type=cache,target=/root/.npm npm install
+# Copy configuration and source files
+COPY package.json ./
+COPY package-lock.json ./
+COPY tsconfig.json ./
+COPY index.ts ./
 
-RUN --mount=type=cache,target=/root/.npm-production npm ci --ignore-scripts --omit-dev
+# Install all dependencies and build the project
+# The "prepare" script in package.json (npm run build) will be triggered
+RUN npm install
 
+# ---- Release Stage ----
 FROM node:22-alpine AS release
 
-COPY --from=builder /app/dist /app/dist
-COPY --from=builder /app/package.json /app/package.json
-COPY --from=builder /app/package-lock.json /app/package-lock.json
-
-ENV NODE_ENV=production
-
 WORKDIR /app
 
-RUN npm ci --ignore-scripts --omit-dev
+# Copy package.json and package-lock.json from builder
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/package-lock.json ./
+
+# Install only production dependencies
+RUN npm ci --omit=dev --ignore-scripts
+
+# Copy the built application from the builder stage
+COPY --from=builder /app/dist ./dist
+
+ENV NODE_ENV=production
 
 ENTRYPOINT ["node", "dist/index.js"]

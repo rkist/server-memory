@@ -1,6 +1,6 @@
 # Knowledge Graph Memory Server
 
-A basic implementation of persistent memory using a local knowledge graph. 
+A basic implementation of persistent memory using a local knowledge graph on a per-project basis.
 
 ## Core Concepts
 
@@ -52,9 +52,14 @@ Example:
 ## API
 
 ### Tools
+
+**All tools now require a `projectIdentifier` argument (string) as the first part of their input. This identifier (e.g., the project's name or a unique ID like its path) is used to create/access a dedicated memory store for that project. By default, project memories are stored in subdirectories under `~/.mcp_server_memory_by_project/`. This base path can be changed by setting the `MCP_BASE_MEMORY_DIR` environment variable.**
+
 - **create_entities**
-  - Create multiple new entities in the knowledge graph
-  - Input: `entities` (array of objects)
+  - Create multiple new entities in the knowledge graph for the specified project.
+  - Input: 
+    - `projectIdentifier` (string)
+    - `entities` (array of objects)
     - Each object contains:
       - `name` (string): Entity identifier
       - `entityType` (string): Type classification
@@ -62,8 +67,10 @@ Example:
   - Ignores entities with existing names
 
 - **create_relations**
-  - Create multiple new relations between entities
-  - Input: `relations` (array of objects)
+  - Create multiple new relations between entities for the specified project.
+  - Input: 
+    - `projectIdentifier` (string)
+    - `relations` (array of objects)
     - Each object contains:
       - `from` (string): Source entity name
       - `to` (string): Target entity name
@@ -71,8 +78,10 @@ Example:
   - Skips duplicate relations
 
 - **add_observations**
-  - Add new observations to existing entities
-  - Input: `observations` (array of objects)
+  - Add new observations to existing entities for the specified project.
+  - Input: 
+    - `projectIdentifier` (string)
+    - `observations` (array of objects)
     - Each object contains:
       - `entityName` (string): Target entity
       - `contents` (string[]): New observations to add
@@ -80,22 +89,28 @@ Example:
   - Fails if entity doesn't exist
 
 - **delete_entities**
-  - Remove entities and their relations
-  - Input: `entityNames` (string[])
+  - Remove entities and their relations for the specified project.
+  - Input: 
+    - `projectIdentifier` (string)
+    - `entityNames` (string[])
   - Cascading deletion of associated relations
   - Silent operation if entity doesn't exist
 
 - **delete_observations**
-  - Remove specific observations from entities
-  - Input: `deletions` (array of objects)
+  - Remove specific observations from entities for the specified project.
+  - Input: 
+    - `projectIdentifier` (string)
+    - `deletions` (array of objects)
     - Each object contains:
       - `entityName` (string): Target entity
       - `observations` (string[]): Observations to remove
   - Silent operation if observation doesn't exist
 
 - **delete_relations**
-  - Remove specific relations from the graph
-  - Input: `relations` (array of objects)
+  - Remove specific relations from the graph for the specified project.
+  - Input: 
+    - `projectIdentifier` (string)
+    - `relations` (array of objects)
     - Each object contains:
       - `from` (string): Source entity name
       - `to` (string): Target entity name
@@ -103,13 +118,17 @@ Example:
   - Silent operation if relation doesn't exist
 
 - **read_graph**
-  - Read the entire knowledge graph
+  - Read the entire knowledge graph for the specified project.
+  - Input: 
+    - `projectIdentifier` (string)
   - No input required
   - Returns complete graph structure with all entities and relations
 
 - **search_nodes**
-  - Search for nodes based on query
-  - Input: `query` (string)
+  - Search for nodes based on query for the specified project.
+  - Input: 
+    - `projectIdentifier` (string)
+    - `query` (string)
   - Searches across:
     - Entity names
     - Entity types
@@ -117,8 +136,10 @@ Example:
   - Returns matching entities and their relations
 
 - **open_nodes**
-  - Retrieve specific nodes by name
-  - Input: `names` (string[])
+  - Retrieve specific nodes by name for the specified project.
+  - Input: 
+    - `projectIdentifier` (string)
+    - `names` (string[])
   - Returns:
     - Requested entities
     - Relations between requested entities
@@ -137,7 +158,21 @@ Add this to your claude_desktop_config.json:
   "mcpServers": {
     "memory": {
       "command": "docker",
-      "args": ["run", "-i", "-v", "memory:/app/dist", "--rm", "mcp/memory"]
+      "args": [
+        "run", "-i", 
+        // Mount a host directory to persist memories. 
+        // Inside the container, os.homedir() (~) is /root for the default user.
+        // The server stores memories in BASE_MEMORY_DIR/projectIdentifier/memory.jsonl
+        // Default BASE_MEMORY_DIR is ~/.mcp_server_memory_by_project/
+        "-v", "/path/on/your/host/project_memories:/root/.mcp_server_memory_by_project", 
+        "--rm", 
+        "mcp/memory" 
+      ]
+      // Optionally, set MCP_BASE_MEMORY_DIR in the container:
+      // "env": {
+      //   "MCP_BASE_MEMORY_DIR": "/app/custom_memory_location"
+      //   // If you use this, ensure your volume mount (-v) targets this custom location.
+      // }
     }
   }
 }
@@ -157,14 +192,16 @@ The server can be configured using the following environment variables:
         "@rkist/server-memory"
       ],
       "env": {
-        "MEMORY_FILE_PATH": "/path/to/custom/memory.json"
+        // MCP_BASE_MEMORY_DIR: Path to the base directory for storing all project-specific memories.
+        // Default is ~/.mcp_server_memory_by_project/
+        "MCP_BASE_MEMORY_DIR": "/path/to/custom/base_memory_dir"
       }
     }
   }
 }
 ```
 
-- `MEMORY_FILE_PATH`: Path to the memory storage JSON file (default: `memory.json` in the server directory)
+- `MCP_BASE_MEMORY_DIR`: Overrides the default base directory (`~/.mcp_server_memory_by_project/`) for storing project memories.
 
 # VS Code Installation Instructions
 
@@ -178,8 +215,9 @@ The server can be configured using the following environment variables:
         "args": [
           "run",
           "-i",
+          // Ensure consistent volume mount for data persistence
           "-v",
-          "claude-memory:/app/dist",
+          "/path/on/your/host/project_memories_vscode:/root/.mcp_server_memory_by_project",
           "--rm",
           "mcp/memory"
         ]
@@ -191,8 +229,6 @@ The server can be configured using the following environment variables:
 
 ### System Prompt
 Check [Memory Rule Example](memory.mdc)
-
-
 
 ## Building
 
