@@ -13,7 +13,7 @@ Entities are the primary nodes in the knowledge graph. Each entity has:
 Example:
 ```json
 {
-  "name": "John_Smith",
+  "name": "David Barnett",
   "entityType": "person",
   "observations": ["Speaks fluent Spanish"]
 }
@@ -25,8 +25,8 @@ Relations define directed connections between entities. They are always stored i
 Example:
 ```json
 {
-  "from": "John_Smith",
-  "to": "Anthropic",
+  "from": "David Barnett",
+  "to": "QuintoAndar",
   "relationType": "works_at"
 }
 ```
@@ -41,10 +41,9 @@ Observations are discrete pieces of information about an entity. They are:
 Example:
 ```json
 {
-  "entityName": "John_Smith",
+  "entityName": "David Barnett",
   "observations": [
     "Speaks fluent Spanish",
-    "Graduated in 2019",
     "Prefers morning meetings"
   ]
 }
@@ -138,22 +137,7 @@ Add this to your claude_desktop_config.json:
   "mcpServers": {
     "memory": {
       "command": "docker",
-      "args": ["run", "-i", "-v", "claude-memory:/app/dist", "--rm", "mcp/memory"]
-    }
-  }
-}
-```
-
-#### NPX
-```json
-{
-  "mcpServers": {
-    "memory": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@rkist/server-memory"
-      ]
+      "args": ["run", "-i", "-v", "memory:/app/dist", "--rm", "mcp/memory"]
     }
   }
 }
@@ -184,37 +168,6 @@ The server can be configured using the following environment variables:
 
 # VS Code Installation Instructions
 
-For quick installation, use one of the one-click installation buttons below:
-
-[![Install with NPX in VS Code](https://img.shields.io/badge/VS_Code-NPM-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=memory&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22%40modelcontextprotocol%2Fserver-memory%22%5D%7D) [![Install with NPX in VS Code Insiders](https://img.shields.io/badge/VS_Code_Insiders-NPM-24bfa5?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=memory&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22%40modelcontextprotocol%2Fserver-memory%22%5D%7D&quality=insiders)
-
-[![Install with Docker in VS Code](https://img.shields.io/badge/VS_Code-Docker-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=memory&config=%7B%22command%22%3A%22docker%22%2C%22args%22%3A%5B%22run%22%2C%22-i%22%2C%22-v%22%2C%22claude-memory%3A%2Fapp%2Fdist%22%2C%22--rm%22%2C%22mcp%2Fmemory%22%5D%7D) [![Install with Docker in VS Code Insiders](https://img.shields.io/badge/VS_Code_Insiders-Docker-24bfa5?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=memory&config=%7B%22command%22%3A%22docker%22%2C%22args%22%3A%5B%22run%22%2C%22-i%22%2C%22-v%22%2C%22claude-memory%3A%2Fapp%2Fdist%22%2C%22--rm%22%2C%22mcp%2Fmemory%22%5D%7D&quality=insiders)
-
-For manual installation, add the following JSON block to your User Settings (JSON) file in VS Code. You can do this by pressing `Ctrl + Shift + P` and typing `Preferences: Open Settings (JSON)`.
-
-Optionally, you can add it to a file called `.vscode/mcp.json` in your workspace. This will allow you to share the configuration with others. 
-
-> Note that the `mcp` key is not needed in the `.vscode/mcp.json` file.
-
-#### NPX
-
-```json
-{
-  "mcp": {
-    "servers": {
-      "memory": {
-        "command": "npx",
-        "args": [
-          "-y",
-          "@modelcontextprotocol/server-memory"
-        ]
-      }
-    }
-  }
-}
-```
-
-#### Docker
 
 ```json
 {
@@ -237,36 +190,9 @@ Optionally, you can add it to a file called `.vscode/mcp.json` in your workspace
 ```
 
 ### System Prompt
+Check [Memory Rule Example](memory.mdc)
 
-The prompt for utilizing memory depends on the use case. Changing the prompt will help the model determine the frequency and types of memories created.
 
-Here is an example prompt for chat personalization. You could use this prompt in the "Custom Instructions" field of a [Claude.ai Project](https://www.anthropic.com/news/projects). 
-
-```
-Follow these steps for each interaction:
-
-1. User Identification:
-   - You should assume that you are interacting with default_user
-   - If you have not identified default_user, proactively try to do so.
-
-2. Memory Retrieval:
-   - Always begin your chat by saying only "Remembering..." and retrieve all relevant information from your knowledge graph
-   - Always refer to your knowledge graph as your "memory"
-
-3. Memory
-   - While conversing with the user, be attentive to any new information that falls into these categories:
-     a) Basic Identity (age, gender, location, job title, education level, etc.)
-     b) Behaviors (interests, habits, etc.)
-     c) Preferences (communication style, preferred language, etc.)
-     d) Goals (goals, targets, aspirations, etc.)
-     e) Relationships (personal and professional relationships up to 3 degrees of separation)
-
-4. Memory Update:
-   - If any new information was gathered during the interaction, update your memory as follows:
-     a) Create entities for recurring organizations, people, and significant events
-     b) Connect them to the current entities using relations
-     b) Store facts about them as observations
-```
 
 ## Building
 
@@ -275,7 +201,3 @@ Docker:
 ```sh
 docker build -t mcp/memory . 
 ```
-
-## License
-
-This MCP server is licensed under the MIT License. This means you are free to use, modify, and distribute the software, subject to the terms and conditions of the MIT License. For more details, please see the LICENSE file in the project repository.
